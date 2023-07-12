@@ -57,6 +57,7 @@ async def create_pdf_agent():
         files = await cl.AskFileMessage(
             content="Welcome to the PDF reader mode! Upload a PDF or a text file",
             accept=["text/plain", "application/pdf"],
+            max_files=1,
             max_size_mb=20,
             timeout=180,
         ).send()

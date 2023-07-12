@@ -50,10 +50,10 @@ async def run(agent, input):
     if pdf_mode:
         # PDF reader mode
         agent = cl.user_session.get("pdf_agent")
-        res = await agent.acall(input, callbacks=[cl.AsyncChainlitCallbackHandler()])
+        res = await agent.acall(input, callbacks=[cl.AsyncLangchainCallbackHandler()])
         await process_response(res)
         return
 
     # Search mode
-    res = await cl.make_async(agent)(input, callbacks=[cl.ChainlitCallbackHandler()])
+    res = await cl.make_async(agent)(input, callbacks=[cl.LangchainCallbackHandler()])
     await cl.Message(content=res["output"]).send()
