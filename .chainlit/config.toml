@@ -1,7 +1,7 @@
 [project]
 # If true (default), the app will be available to anonymous users.
 # If false, users will need to authenticate and be part of the project to use the app.
-public = false
+public = true
 
 # The project ID (found on https://cloud.chainlit.io).
 # The project ID is required when public is set to false or when using the cloud database.
@@ -33,7 +33,7 @@ default_expand_messages = false
 hide_cot = false
 
 # Link to your github repo. This will add a github button in the UI's header.
-# github = ""
+# github = "https://github.com/dauinh/dualbot"
 
 [meta]
 generated_by = "0.5.2"
