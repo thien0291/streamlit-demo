@@ -1,8 +1,6 @@
 # dualbot
 a chat bot integrated with search mode and pdf file reader mode
 
-[Demo](https://dualbot-image-7tzprwbq4a-as.a.run.app/)
-
 ## Why
 GPT3 stopped training after early 2022, so it is not updated with new information. Using search engines allow the bot to answer questions about current events.
 Reading PDF files is a plugin that I like but can't use without GPT4.
