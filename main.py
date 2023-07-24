@@ -40,6 +40,9 @@ from chainlit.types import (
 )
 import requests
 import jwt
+import chainlit as cl
+from chainlit.user_session import user_session
+
 
 login="https://pressingly-account.onrender.com/oauth/authorize?client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q&redirect_uri=https%3A%2F%2F57d7-222-252-20-227.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
 
@@ -81,7 +84,13 @@ async def helloworld(request: Request):
     
     response = RedirectResponse("/")
     # response = JSONResponse(content={"hello": response, "payload": decoded_payload, "userinfo": y.json()})
+    chainlit_session_id = request.cookies.get('chainlit-session')
+    print('cookie session', chainlit_session_id)
+    current_user_session = sessions_id[chainlit_session_id]
+    print('user session', current_user_session)
+    print(vars(current_user_session))
     response.set_cookie(key="session", value=auth_email)
+    # current_user_session.set("email", auth_email)
     return response
 
 
@@ -94,18 +103,29 @@ chainlit.pop()
 # for route in app.router.routes:
 #     print(route)
 
-import chainlit as cl
-
 from setup import search_agent
 from utils import create_pdf_agent, process_response
 
 
 # The search tool has no async implementation, we fall back to sync
 # Agent is loaded before rendering
-@cl.langchain_factory(use_async=False)
-def factory():
-    return search_agent
+# @cl.langchain_factory(use_async=False)
+# def factory():
+#     return search_agent
 
+# from urllib2 import Request, build_opener, HTTPCookieProcessor, HTTPHandler
+# import cookielib
+
+# #Create a CookieJar object to hold the cookies
+# cj = cookielib.CookieJar()
+
+# #Create an opener to open pages using the http protocol and to process cookies.
+# opener = build_opener(HTTPCookieProcessor(cj), HTTPHandler())
+
+# response = opener.open('https://57d7-222-252-20-227.ngrok-free.app/') # <---
+# response.read()
+
+from chainlit.session import sessions_sid, sessions_id
 
 @cl.on_chat_start
 async def start():
@@ -121,11 +141,33 @@ async def start():
             name="login", value="False", label="Login", description="Click me!"
         )
     ]
+    cl.user_session.set("search_agent", search_agent)
 
+    cl.user_session.set('test_sid', 'asdf')
+    email = cl.user_session.get('email')
+    print()
+    print(email)
+    print()
+    print('user session:', vars(user_session))
+    print(cl.user_session.get('test_sid'))
+    print('sessions_sid, sessions_id', sessions_sid, ';', sessions_id)
     await cl.Message(
-        content="Press this button to switch to chat mode with PDF reader. Open a new chat to reset mode.\nOtherwise, continue to chat for search mode.",
+        content=str(email)+" Press this button to switch to chat mode with PDF reader. Open a new chat to reset mode.\nOtherwise, continue to chat for search mode.",
         actions=actions,
     ).send()
+
+@cl.on_message
+async def main(message: str):
+    # Retrieve the chain from the user session
+    llm_chain = cl.user_session.get("search_agent")  # type: LLMChain
+
+    # Call the chain asynchronously
+    res = await llm_chain.acall(message, callbacks=[cl.AsyncLangchainCallbackHandler()])
+
+    # Do any post processing here
+
+    # Send the response
+    await cl.Message(content=res["text"]).send()
 
 import webbrowser
 
@@ -148,17 +190,17 @@ async def on_action(action):
     await action.remove()
 
 
-@cl.langchain_run
-async def run(agent, input):
-    pdf_mode = cl.user_session.get("pdf_mode")
+# @cl.langchain_run
+# async def run(agent, input):
+#     pdf_mode = cl.user_session.get("pdf_mode")
 
-    if pdf_mode:
-        # PDF reader mode
-        agent = cl.user_session.get("pdf_agent")
-        res = await agent.acall(input, callbacks=[cl.AsyncLangchainCallbackHandler()])
-        await process_response(res)
-        return
+#     if pdf_mode:
+#         # PDF reader mode
+#         agent = cl.user_session.get("pdf_agent")
+#         res = await agent.acall(input, callbacks=[cl.AsyncLangchainCallbackHandler()])
+#         await process_response(res)
+#         return
 
-    # Search mode
-    res = await cl.make_async(agent)(input, callbacks=[cl.LangchainCallbackHandler()])
-    await cl.Message(content=res["output"]).send()
+#     # Search mode
+#     res = await cl.make_async(agent)(input, callbacks=[cl.LangchainCallbackHandler()])
+#     await cl.Message(content=res["output"]).send()
