@@ -37,19 +37,40 @@ from chainlit.types import (
     GetConversationsRequest,
     DeleteConversationRequest,
 )
+import requests
 
+
+myobj = {'somekey': 'somevalue'}
+
+login="https://pressingly-account.onrender.com/oauth/authorize?client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q&redirect_uri=https%3A%2F%2F57d7-222-252-20-227.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
 
 @app.get("/helloworld")
 async def helloworld(request: Request):
-    """Get all the members of a project."""
-    return JSONResponse(content={"members": "HELLO WORLD"})
+    auth_code = "_9n3rDhUFPD22IB2lrQS62Us3G0N707BBaAyXGxtqLk"
+    # req = f"""https://pressingly-account.onrender.com/oauth/token \
+    #     grant_type=authorization_code \
+    #     &client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q \
+    #     &client_secret=TTuB-MPYJWl4ywv4mhikTviYsPK257WojYhNe_WF2vc \
+    #     &redirect_uri=https://57d7-222-252-20-227.ngrok-free.app/helloworld \
+    #     &code={auth_code}"""
+    url = 'https://pressingly-account.onrender.com/oauth/token'
+    myobj = {
+        'grant_type': "authorization_code",
+        'client_id': 'pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q',
+        'client_secret': 'TTuB-MPYJWl4ywv4mhikTviYsPK257WojYhNe_WF2vc',
+        'redirect_uri': 'https://57d7-222-252-20-227.ngrok-free.app/helloworld',
+        'code': auth_code
+    }
+    x = requests.post(url, json = myobj)
+    print(x)
+    return JSONResponse(content={"hello": "world"})
 
 chainlit = app.router.routes
 hello_route = chainlit[-1]
 chainlit.insert(-2, hello_route)
 chainlit.pop()
-for route in app.router.routes:
-    print(route)
+# for route in app.router.routes:
+#     print(route)
 
 import chainlit as cl
 
@@ -73,6 +94,9 @@ async def start():
     actions = [
         cl.Action(
             name="pdf_mode", value="False", label="PDF reader", description="Click me!"
+        ), 
+        cl.Action(
+            name="login", value="False", label="Login", description="Click me!"
         )
     ]
 
@@ -80,6 +104,12 @@ async def start():
         content="Press this button to switch to chat mode with PDF reader. Open a new chat to reset mode.\nOtherwise, continue to chat for search mode.",
         actions=actions,
     ).send()
+
+import webbrowser
+
+@cl.action_callback("login")
+async def on_action(action):
+    webbrowser.open(login)
 
 
 @cl.action_callback("pdf_mode")
