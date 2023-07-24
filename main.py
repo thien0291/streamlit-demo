@@ -1,4 +1,4 @@
-from chainlit.server import app
+from chainlit.server import app, get_html_template
 import mimetypes
 
 mimetypes.add_type("application/javascript", ".js")
@@ -41,10 +41,37 @@ from chainlit.types import (
 import requests
 import jwt
 import chainlit as cl
-from chainlit.user_session import user_session
+from chainlit.user_session import user_sessions
+import uuid
+
+REDIRECT_URL = "https://5308-2001-ee0-d741-2e60-bc8b-cf66-64f1-4a36.ngrok-free.app/helloworld"
+OIDC_CLIENT_ID = "PTwTcOE0RfUeMPqs2IOX8JMtiwpQa6q5qD0IIFnf4rY"
+OIDC_CLIENT_SECRET = "2GLvdawMDJzJxsp13rsDf4Y4-CfMKSTlB-thAsUjIjk"
+login="https://pressingly-account.onrender.com/oauth/authorize?client_id=PTwTcOE0RfUeMPqs2IOX8JMtiwpQa6q5qD0IIFnf4rY&redirect_uri=https%3A%2F%2F5308-2001-ee0-d741-2e60-bc8b-cf66-64f1-4a36.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
+
+chainlit_route = app.router.routes
+
+from chainlit.server import html_template
+print(html_template)
+@app.get("/")
+async def serve(request: Request):
+    html_template = get_html_template()
+    """Serve the UI files."""
+
+    response = HTMLResponse(content=html_template, status_code=200)
+    auth_email = request.cookies.get('auth_email')
+    print("auth_email", auth_email)
+
+    chainlit_session_id = str(uuid.uuid4())
+    response.set_cookie(
+        key="chainlit-session", value=chainlit_session_id, httponly=True
+    )
+    user_sessions[chainlit_session_id] = {"auth_email": auth_email}
 
 
-login="https://pressingly-account.onrender.com/oauth/authorize?client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q&redirect_uri=https%3A%2F%2F57d7-222-252-20-227.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
+
+
+    return response
 
 @app.get("/helloworld")
 async def helloworld(request: Request):
@@ -63,14 +90,16 @@ async def helloworld(request: Request):
     url = 'https://pressingly-account.onrender.com/oauth/token'
     myobj = {
         'grant_type': "authorization_code",
-        'client_id': 'pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q',
-        'client_secret': 'TTuB-MPYJWl4ywv4mhikTviYsPK257WojYhNe_WF2vc',
-        'redirect_uri': 'https://57d7-222-252-20-227.ngrok-free.app/helloworld',
+        'client_id': OIDC_CLIENT_ID,
+        'client_secret': OIDC_CLIENT_SECRET,
+        'redirect_uri': REDIRECT_URL,
         'code': auth_code
     }
     public_key = "v5Ins_85RHfOXvMMJ1Peqdjyv-o98CmONMhAtoV0ctI"
+    print("query params", myobj)
     x = requests.post(url, json = myobj)
     response = x.json()
+    print(x.json())
     id_token = response['id_token']
     access_token = 'Bearer ' + response['access_token']
     # print(access_token)
@@ -81,27 +110,25 @@ async def helloworld(request: Request):
     header, payload, signature = id_token.split('.')
     decoded_payload = jwt.utils.base64url_decode(payload)
     decoded_payload = decoded_payload.decode('utf8').replace("'", '"')
-    
+
     response = RedirectResponse("/")
     # response = JSONResponse(content={"hello": response, "payload": decoded_payload, "userinfo": y.json()})
-    chainlit_session_id = request.cookies.get('chainlit-session')
-    print('cookie session', chainlit_session_id)
-    current_user_session = sessions_id[chainlit_session_id]
-    print('user session', current_user_session)
-    print(vars(current_user_session))
-    response.set_cookie(key="session", value=auth_email)
-    # current_user_session.set("email", auth_email)
+    response.set_cookie(key="auth_email", value=auth_email)
     return response
 
 
+chainlit_route = app.router.routes
+root_route = chainlit_route[-1]
+chainlit_route.insert(-4, root_route)
+chainlit_route.pop()
+
+hello_route = chainlit_route[-1]
+chainlit_route.insert(-4, hello_route)
+chainlit_route.pop()
 
 
-chainlit = app.router.routes
-hello_route = chainlit[-1]
-chainlit.insert(-2, hello_route)
-chainlit.pop()
-# for route in app.router.routes:
-#     print(route)
+for route in app.router.routes:
+    print(route)
 
 from setup import search_agent
 from utils import create_pdf_agent, process_response
@@ -136,21 +163,15 @@ async def start():
     actions = [
         cl.Action(
             name="pdf_mode", value="False", label="PDF reader", description="Click me!"
-        ), 
+        ),
         cl.Action(
             name="login", value="False", label="Login", description="Click me!"
         )
     ]
     cl.user_session.set("search_agent", search_agent)
 
-    cl.user_session.set('test_sid', 'asdf')
-    email = cl.user_session.get('email')
-    print()
-    print(email)
-    print()
-    print('user session:', vars(user_session))
-    print(cl.user_session.get('test_sid'))
-    print('sessions_sid, sessions_id', sessions_sid, ';', sessions_id)
+    email = cl.user_session.get('auth_email')
+    print("auth_email", email)
     await cl.Message(
         content=str(email)+" Press this button to switch to chat mode with PDF reader. Open a new chat to reset mode.\nOtherwise, continue to chat for search mode.",
         actions=actions,
