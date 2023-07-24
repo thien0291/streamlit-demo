@@ -12,10 +12,11 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from watchfiles import awatch
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
+    RedirectResponse,
     FileResponse,
     PlainTextResponse,
 )
@@ -38,21 +39,24 @@ from chainlit.types import (
     DeleteConversationRequest,
 )
 import requests
-
-
-myobj = {'somekey': 'somevalue'}
+import jwt
 
 login="https://pressingly-account.onrender.com/oauth/authorize?client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q&redirect_uri=https%3A%2F%2F57d7-222-252-20-227.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
 
 @app.get("/helloworld")
 async def helloworld(request: Request):
-    auth_code = "_9n3rDhUFPD22IB2lrQS62Us3G0N707BBaAyXGxtqLk"
-    # req = f"""https://pressingly-account.onrender.com/oauth/token \
-    #     grant_type=authorization_code \
-    #     &client_id=pfyhFPEGM0NHvTOv5Xk1s6pV6hLScS38g751A8hyX5Q \
-    #     &client_secret=TTuB-MPYJWl4ywv4mhikTviYsPK257WojYhNe_WF2vc \
-    #     &redirect_uri=https://57d7-222-252-20-227.ngrok-free.app/helloworld \
-    #     &code={auth_code}"""
+    # print(request._query_params)
+    auth_code = request._query_params['code']
+    # HTTP/1.1 200
+# Content-Type: application/json
+# {
+#   "access_token": "WIYLON2QSubLYyNcScIF5IPXf4iu6seioZYbCpxWHG4",
+#   "token_type": "Bearer",
+#   "expires_in": 7200,
+#   "scope": "openid email",
+#   "created_at": 1690193544,
+#   "id_token": "eyJraWQiOiJ2NUluc184NVJIZk9Ydk1NSjFQZXFkanl2LW85OENtT05NaEF0b1YwY3RJIiwiYWxnIjoiUlMyNTYifQ.eyJpc3MiOiJwcmVzc2luZ2x5Iiwic3ViIjoiZDkwYzRjNjMtYjAxMi00MTI3LWE3NjUtZGVlOTJkMTNlYTc5IiwiYXVkIjoieXFQVjhPSmtUWGkyTXBscy1JbmIyc3c5WWE0anJUWEhXUUhSdnVEOEJCQSIsImV4cCI6MTY5MDE5MzY2NCwi
+# id_token: jwt
     url = 'https://pressingly-account.onrender.com/oauth/token'
     myobj = {
         'grant_type': "authorization_code",
@@ -61,9 +65,27 @@ async def helloworld(request: Request):
         'redirect_uri': 'https://57d7-222-252-20-227.ngrok-free.app/helloworld',
         'code': auth_code
     }
+    public_key = "v5Ins_85RHfOXvMMJ1Peqdjyv-o98CmONMhAtoV0ctI"
     x = requests.post(url, json = myobj)
-    print(x)
-    return JSONResponse(content={"hello": "world"})
+    response = x.json()
+    id_token = response['id_token']
+    access_token = 'Bearer ' + response['access_token']
+    # print(access_token)
+    userinfo_url = "https://pressingly-account.onrender.com/oauth/userinfo"
+    headers = {'Authorization': access_token}
+    y = requests.get(userinfo_url, headers=headers)
+    auth_email = y.json()['email']
+    header, payload, signature = id_token.split('.')
+    decoded_payload = jwt.utils.base64url_decode(payload)
+    decoded_payload = decoded_payload.decode('utf8').replace("'", '"')
+    
+    response = RedirectResponse("/")
+    # response = JSONResponse(content={"hello": response, "payload": decoded_payload, "userinfo": y.json()})
+    response.set_cookie(key="session", value=auth_email)
+    return response
+
+
+
 
 chainlit = app.router.routes
 hello_route = chainlit[-1]
