@@ -3,4 +3,5 @@ pinecone-client==2.2.1
 tiktoken==0.3.3
 langchain
 chainlit==0.6.0
+importlib-metadata~=6.0.0
 google-search-results
