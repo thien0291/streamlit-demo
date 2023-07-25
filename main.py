@@ -50,6 +50,7 @@ OIDC_CLIENT_SECRET = "2GLvdawMDJzJxsp13rsDf4Y4-CfMKSTlB-thAsUjIjk"
 login="https://pressingly-account.onrender.com/oauth/authorize?client_id=PTwTcOE0RfUeMPqs2IOX8JMtiwpQa6q5qD0IIFnf4rY&redirect_uri=https%3A%2F%2F5308-2001-ee0-d741-2e60-bc8b-cf66-64f1-4a36.ngrok-free.app%2Fhelloworld&response_type=code&scope=openid+email"
 
 chainlit_route = app.router.routes
+wildcard_route = chainlit_route.pop()
 
 from chainlit.server import html_template
 print(html_template)
@@ -117,15 +118,15 @@ async def helloworld(request: Request):
     return response
 
 
-chainlit_route = app.router.routes
-root_route = chainlit_route[-1]
-chainlit_route.insert(-4, root_route)
-chainlit_route.pop()
+# chainlit_route = app.router.routes
+# root_route = chainlit_route[-1]
+# chainlit_route.insert(-4, root_route)
+# chainlit_route.pop()
 
-hello_route = chainlit_route[-1]
-chainlit_route.insert(-4, hello_route)
-chainlit_route.pop()
-
+# hello_route = chainlit_route[-1]
+# chainlit_route.insert(-4, hello_route)
+# chainlit_route.pop()
+chainlit_route.append(wildcard_route)
 
 for route in app.router.routes:
     print(route)
